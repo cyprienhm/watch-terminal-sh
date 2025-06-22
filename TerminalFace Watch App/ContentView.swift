@@ -89,7 +89,16 @@ func fetchRings(completion: @escaping (ActivityRings?) -> Void) {
 
     healthStore.execute(query)
 }
+let stepFormatter: NumberFormatter = {
+    let f = NumberFormatter()
+    f.numberStyle = .decimal
+    f.locale = Locale(identifier: "en_US")
+    return f
+}()
 
+func formatSteps(_ value: Int) -> String {
+    stepFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
+}
 
 struct ContentView: View {
     @State private var currentDate = Date()
@@ -97,8 +106,10 @@ struct ContentView: View {
     @State private var steps = 0
     @StateObject private var weatherManager = WeatherManager()
     @State private var batteryLevel = 0
+    @State private var showCursor = true
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private let fastTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -127,7 +138,7 @@ struct ContentView: View {
                         .day(.twoDigits)
                         .weekday(.abbreviated)
                 ))
-                    .foregroundColor(.white)
+                .foregroundColor(.white)
             }
             HStack {
                 Text("Rings:")
@@ -152,7 +163,7 @@ struct ContentView: View {
             HStack {
                 Text("Steps:")
                     .foregroundColor(.cyan)
-                Text("\(steps)")
+                Text(formatSteps(steps))
                     .foregroundColor(.white)
             }
             HStack {
@@ -168,6 +179,11 @@ struct ContentView: View {
                     .foregroundColor(.blue)
                 Text("$")
                     .foregroundColor(.white)
+                if showCursor {
+                    Text("█")
+                        .foregroundColor(.white)
+                        .opacity(0.8)
+                }
             }
         }
         .font(.system(size: 14, design: .monospaced))
@@ -177,16 +193,17 @@ struct ContentView: View {
         .onReceive(timer) { input in
             currentDate = input
             batteryLevel = Int(WKInterfaceDevice.current().batteryLevel * 100)
-        }
-        .onAppear {
             fetchRings { result in
                 if let result = result {
                     rings = result
                 }
             }
+            showCursor.toggle()
             fetchSteps { value in
                 steps = value
             }
+        }
+        .onAppear {
             WKInterfaceDevice.current().isBatteryMonitoringEnabled = true
             batteryLevel = Int(WKInterfaceDevice.current().batteryLevel * 100)
         }
