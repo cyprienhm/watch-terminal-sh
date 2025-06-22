@@ -47,6 +47,9 @@ class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             }
         }.resume()
     }
+    func refresh() {
+        locationManager.startUpdatingLocation()
+    }
 }
 
 func fetchSteps(completion: @escaping (Int) -> Void) {
@@ -100,88 +103,119 @@ func formatSteps(_ value: Int) -> String {
     stepFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
 }
 
+struct Dracula {
+    static let background = Color(red: 40/255, green: 42/255, blue: 54/255)
+    static let currentLine = Color(red: 68/255, green: 71/255, blue: 90/255)
+    static let foreground = Color(red: 248/255, green: 248/255, blue: 242/255)
+    static let comment = Color(red: 98/255, green: 114/255, blue: 164/255)
+    static let cyan = Color(red: 139/255, green: 233/255, blue: 253/255)
+    static let green = Color(red: 80/255, green: 250/255, blue: 123/255)
+    static let orange = Color(red: 255/255, green: 184/255, blue: 108/255)
+    static let pink = Color(red: 255/255, green: 121/255, blue: 198/255)
+    static let purple = Color(red: 189/255, green: 147/255, blue: 249/255)
+    static let red = Color(red: 255/255, green: 85/255, blue: 85/255)
+    static let yellow = Color(red: 241/255, green: 250/255, blue: 140/255)
+}
+
+
 struct ContentView: View {
     @State private var currentDate = Date()
     @State private var rings = ActivityRings(move: 0, exercise: 0, stand: 0)
     @State private var steps = 0
     @StateObject private var weatherManager = WeatherManager()
-    @State private var batteryLevel = 0
+    @State private var batteryLevel = 0.0
     @State private var showCursor = true
+    
+    let batteryBarLength = 7
+    
+    var batteryBar: String {
+        let filled = Int(batteryLevel  * Double(batteryBarLength))
+        let empty = batteryBarLength - filled - 1
+        if empty < 0 { return String(repeating: "#", count: batteryBarLength) }
+        return String(repeating: "#", count: filled) + ">" + String(repeating: "-", count: empty)
+    }
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    private let fastTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+    private let slowTimer = Timer.publish(every: 600, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text("cy@watch:")
-                    .foregroundColor(.green) +
+                    .foregroundColor(Dracula.green) +
                 Text("~")
-                    .foregroundColor(.blue)
+                    .foregroundColor(Dracula.cyan)
                 Text("$")
-                    .foregroundColor(.white)
+                    .foregroundColor(Dracula.foreground)
                 Text("now")
-                    .foregroundColor(.white)
+                    .foregroundColor(Dracula.foreground)
             }
             HStack {
                 Text("Time:")
-                    .foregroundColor(.cyan)
-                Text(currentDate.formatted(date: .omitted, time: .shortened))
-                    .foregroundColor(.white)
+                    .foregroundColor(Dracula.cyan)
+                Text(currentDate.formatted(
+                    Date.FormatStyle()
+                        .hour(.defaultDigits(amPM: .abbreviated))
+                        .minute(.twoDigits)
+                        .locale(Locale(identifier: "en_US"))
+                ))
+
             }
             HStack {
                 Text("Date:")
-                    .foregroundColor(.cyan)
+                    .foregroundColor(Dracula.cyan)
                 Text(currentDate.formatted(
                     Date.FormatStyle()
                         .month(.abbreviated)
                         .day(.twoDigits)
                         .weekday(.abbreviated)
                 ))
-                .foregroundColor(.white)
+                .foregroundColor(Dracula.foreground)
             }
             HStack {
                 Text("Rings:")
-                    .foregroundColor(.cyan)
+                    .foregroundColor(Dracula.cyan)
                 Text("\(rings.move)")
                     .foregroundColor(.red)
                 Text("-")
-                    .foregroundColor(.white)
+                    .foregroundColor(Dracula.foreground)
                 Text("\(rings.exercise)")
-                    .foregroundColor(.green)
+                    .foregroundColor(Dracula.green)
                 Text("-")
-                    .foregroundColor(.white)
+                    .foregroundColor(Dracula.foreground)
                 Text("\(rings.stand)")
-                    .foregroundColor(.blue)
+                    .foregroundColor(Dracula.cyan)
             }
             HStack {
                 Text("Temp:")
-                    .foregroundColor(.cyan)
+                    .foregroundColor(Dracula.cyan)
                 Text(weatherManager.temperature)
-                    .foregroundColor(.white)
+                    .foregroundColor(Dracula.orange)
             }
             HStack {
                 Text("Steps:")
-                    .foregroundColor(.cyan)
+                    .foregroundColor(Dracula.cyan)
                 Text(formatSteps(steps))
-                    .foregroundColor(.white)
+                    .foregroundColor(Dracula.foreground)
             }
             HStack {
-                Text("Battery:")
-                    .foregroundColor(.cyan)
-                Text("\(batteryLevel)%")
-                    .foregroundColor(.white)
+                Text("Bat:")
+                    .foregroundColor(Dracula.cyan)
+                Text("\(Int(100 * batteryLevel))%")
+                    .foregroundColor(Dracula.foreground)
+                Text("[\(batteryBar)]")
+                    .foregroundColor(Dracula.pink)
             }
             HStack {
                 Text("cy@watch:")
-                    .foregroundColor(.green) +
+                    .foregroundColor(Dracula.green) +
                 Text("~")
-                    .foregroundColor(.blue)
+                    .foregroundColor(Dracula.cyan)
                 Text("$")
-                    .foregroundColor(.white)
+                    .foregroundColor(Dracula.foreground)
                 if showCursor {
                     Text("█")
-                        .foregroundColor(.white)
+                        .foregroundColor(Dracula.foreground)
                         .opacity(0.8)
                 }
             }
@@ -192,7 +226,7 @@ struct ContentView: View {
         .padding()
         .onReceive(timer) { input in
             currentDate = input
-            batteryLevel = Int(WKInterfaceDevice.current().batteryLevel * 100)
+            batteryLevel = Double(WKInterfaceDevice.current().batteryLevel)
             fetchRings { result in
                 if let result = result {
                     rings = result
@@ -203,9 +237,11 @@ struct ContentView: View {
                 steps = value
             }
         }
+        .onReceive(slowTimer) { input in
+            weatherManager.refresh()
+        }
         .onAppear {
             WKInterfaceDevice.current().isBatteryMonitoringEnabled = true
-            batteryLevel = Int(WKInterfaceDevice.current().batteryLevel * 100)
         }
     }
 }
