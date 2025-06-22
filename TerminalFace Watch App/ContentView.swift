@@ -15,6 +15,56 @@ struct ActivityRings: Equatable {
     let exercise: Int
     let stand: Int
 }
+class WeatherManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var temperature: String = "--°C"
+    private let locationManager = CLLocationManager()
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let loc = locations.first else { return }
+        fetchTemperature(for: loc)
+        locationManager.stopUpdatingLocation()
+    }
+
+    func fetchTemperature(for location: CLLocation) {
+        let urlString = "https://api.open-meteo.com/v1/forecast?latitude=\(location.coordinate.latitude)&longitude=\(location.coordinate.longitude)&current_weather=true&temperature_unit=celsius"
+        guard let url = URL(string: urlString) else { return }
+
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let current = json["current_weather"] as? [String: Any],
+                  let temp = current["temperature"] as? Double else { return }
+
+            DispatchQueue.main.async {
+                self.temperature = "\(Int(temp))°C"
+            }
+        }.resume()
+    }
+}
+
+func fetchSteps(completion: @escaping (Int) -> Void) {
+    let store = HKHealthStore()
+    let stepsType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
+    let now = Date()
+    let startOfDay = Calendar.current.startOfDay(for: now)
+    let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
+
+    let query = HKStatisticsQuery(quantityType: stepsType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+        guard let sum = result?.sumQuantity() else {
+            completion(0)
+            return
+        }
+        completion(Int(sum.doubleValue(for: HKUnit.count())))
+    }
+    store.execute(query)
+}
 
 func fetchRings(completion: @escaping (ActivityRings?) -> Void) {
     let calendar = Calendar.current
@@ -44,36 +94,89 @@ func fetchRings(completion: @escaping (ActivityRings?) -> Void) {
 struct ContentView: View {
     @State private var currentDate = Date()
     @State private var rings = ActivityRings(move: 0, exercise: 0, stand: 0)
+    @State private var steps = 0
+    @StateObject private var weatherManager = WeatherManager()
+    @State private var batteryLevel = 0
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
+                Text("cy@watch:")
+                    .foregroundColor(.green) +
+                Text("~")
+                    .foregroundColor(.blue)
+                Text("$")
+                    .foregroundColor(.white)
+                Text("now")
+                    .foregroundColor(.white)
+            }
+            HStack {
                 Text("Time:")
                     .foregroundColor(.cyan)
                 Text(currentDate.formatted(date: .omitted, time: .shortened))
-                    .foregroundColor(.green)
+                    .foregroundColor(.white)
             }
             HStack {
                 Text("Date:")
                     .foregroundColor(.cyan)
-                Text(currentDate.formatted(date: .long, time: .omitted))
-                    .foregroundColor(.green)
+                Text(currentDate.formatted(
+                    Date.FormatStyle()
+                        .month(.abbreviated)
+                        .day(.twoDigits)
+                        .weekday(.abbreviated)
+                ))
+                    .foregroundColor(.white)
             }
             HStack {
                 Text("Rings:")
                     .foregroundColor(.cyan)
-                Text("\(rings.move) \(rings.exercise) \(rings.stand)")
+                Text("\(rings.move)")
+                    .foregroundColor(.red)
+                Text("-")
+                    .foregroundColor(.white)
+                Text("\(rings.exercise)")
                     .foregroundColor(.green)
+                Text("-")
+                    .foregroundColor(.white)
+                Text("\(rings.stand)")
+                    .foregroundColor(.blue)
+            }
+            HStack {
+                Text("Temp:")
+                    .foregroundColor(.cyan)
+                Text(weatherManager.temperature)
+                    .foregroundColor(.white)
+            }
+            HStack {
+                Text("Steps:")
+                    .foregroundColor(.cyan)
+                Text("\(steps)")
+                    .foregroundColor(.white)
+            }
+            HStack {
+                Text("Battery:")
+                    .foregroundColor(.cyan)
+                Text("\(batteryLevel)%")
+                    .foregroundColor(.white)
+            }
+            HStack {
+                Text("cy@watch:")
+                    .foregroundColor(.green) +
+                Text("~")
+                    .foregroundColor(.blue)
+                Text("$")
+                    .foregroundColor(.white)
             }
         }
-        .font(.system(.body, design: .monospaced))
+        .font(.system(size: 14, design: .monospaced))
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.black)
         .padding()
         .onReceive(timer) { input in
             currentDate = input
+            batteryLevel = Int(WKInterfaceDevice.current().batteryLevel * 100)
         }
         .onAppear {
             fetchRings { result in
@@ -81,6 +184,11 @@ struct ContentView: View {
                     rings = result
                 }
             }
+            fetchSteps { value in
+                steps = value
+            }
+            WKInterfaceDevice.current().isBatteryMonitoringEnabled = true
+            batteryLevel = Int(WKInterfaceDevice.current().batteryLevel * 100)
         }
     }
 }

@@ -459,6 +459,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = TerminalFace;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app uses HealthKit to display your activity rings.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Used to fetch weather for your location";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKWatchOnly = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -492,6 +493,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = TerminalFace;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app uses HealthKit to display your activity rings.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Used to fetch weather for your location";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKWatchOnly = YES;
 				LD_RUNPATH_SEARCH_PATHS = (

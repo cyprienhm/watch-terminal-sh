@@ -24,6 +24,9 @@ struct TerminalFace_Watch_AppApp: App {
 }
 
 func requestHealthAuth() {
-    let types: Set = [HKObjectType.activitySummaryType()]
+    let types: Set = [
+        HKObjectType.activitySummaryType(),
+        HKObjectType.quantityType(forIdentifier: .stepCount)!
+    ]
     healthStore.requestAuthorization(toShare: nil, read: types) { _, _ in }
 }
