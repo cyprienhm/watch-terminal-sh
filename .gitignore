@@ -1,0 +1,15 @@
+*.xcuserstate
+*.xcscmblueprint
+*.xcuserdatad/
+*.xccheckout
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/xcshareddata/xcschemes/* 
+
+DerivedData/
+build/
+*.swp
+*.tmp
+
+.swiftpm/
+**/.DS_Store
