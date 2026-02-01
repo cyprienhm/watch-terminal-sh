@@ -5,8 +5,12 @@
 
 (i made this for my own apple watch because terminals are cool)
 
+Photo:
+<div align="center">
+    <img src="screenshots/watchface.png" height="500">
+</div>
 
-## Preview
-![Preview Apple Watch SE](screenshots/preview-SE.png)
-
-
+Screenshot:
+<div align="center">
+    <img src="screenshots/watchface-screenshot.png" height="300">
+</div>
