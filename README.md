@@ -5,7 +5,7 @@
 
 (i made this for my own apple watch because terminals are cool)
 
-Photo:
+Photo (on my apple watch SE 2):
 <div align="center">
     <img src="screenshots/watchface.png" height="500">
 </div>
