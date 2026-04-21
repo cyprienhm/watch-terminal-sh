@@ -15,11 +15,6 @@ This is how I install and run the app on my watch:
     - (!!!careful for data loss at this step!!!) unpair / pair again the watch
       to the phone
 - select the watch as the run destination
-- inside `TerminalFace Watch App/ContentView.swift`, under `Constants`, make
-  sure that preview mode is not set to true:
-```swift
-static let previewMode = true  // make sure this is not set to false
-```
 - run the app: in XCode, under Product -> Run (cmd + r)
   this will make the app run on the watch. if you close it, you should be able
   to find it in the app grid.
