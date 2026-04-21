@@ -6,27 +6,15 @@
 //
 
 import SwiftUI
-import HealthKit
-
-let healthStore = HKHealthStore()
 
 @main
-struct TerminalFace_Watch_AppApp: App {
-    init() {
-        requestHealthAuth()
-    }
+struct TerminalFaceApp: App {
+    @State private var health = HealthService()
+    @State private var weather = WeatherService()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TerminalView(health: health, weather: weather)
         }
     }
-}
-
-func requestHealthAuth() {
-    let types: Set = [
-        HKObjectType.activitySummaryType(),
-        HKObjectType.quantityType(forIdentifier: .stepCount)!
-    ]
-    healthStore.requestAuthorization(toShare: nil, read: types) { _, _ in }
 }
