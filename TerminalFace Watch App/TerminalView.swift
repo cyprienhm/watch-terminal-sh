@@ -27,10 +27,38 @@ func batteryBar(level: Double, length: Int = TerminalConstants.batteryBarLength)
     return String(repeating: "#", count: filled) + ">" + String(repeating: "-", count: empty)
 }
 
+enum TimerState: Equatable {
+    case idle
+    case running(since: Date, accumulated: TimeInterval)
+    case paused(accumulated: TimeInterval)
+
+    func elapsed(at now: Date) -> TimeInterval {
+        switch self {
+        case .idle: return 0
+        case .running(let since, let accumulated):
+            return accumulated + now.timeIntervalSince(since)
+        case .paused(let accumulated):
+            return accumulated
+        }
+    }
+}
+
+func formatElapsed(_ seconds: Int) -> String {
+    let s = max(0, seconds)
+    let h = s / 3600
+    let m = (s % 3600) / 60
+    let sec = s % 60
+    if h > 0 {
+        return String(format: "%d:%02d:%02d", h, m, sec)
+    }
+    return String(format: "%02d:%02d", m, sec)
+}
+
 struct TerminalView: View {
     @State private var health: HealthService
     @State private var weather: WeatherService
     @State private var batteryLevel: Double
+    @State private var timerState: TimerState = .idle
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     private let previewBattery: Double?
@@ -71,13 +99,17 @@ struct TerminalView: View {
                         value: "\(Int(100 * batteryLevel))% [\(batteryBar(level: batteryLevel))]",
                         valueColor: Dracula.pink
                     )
-                    PromptRow(command: Text(showCursor ? "█" : "").foregroundColor(Dracula.foreground))
+                    bottomRow(date: context.date, showCursor: showCursor)
                 }
                 .font(.system(size: 14, design: .monospaced))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding()
                 .foregroundStyle(isLuminanceReduced ? Dracula.comment : Dracula.foreground)
             }
+            .contentShape(Rectangle())
+            .onTapGesture(count: 3) { timerState = .idle }
+            .onTapGesture(count: 2) { resetTimer() }
+            .onTapGesture { toggleTimer(now: context.date) }
         }
         .onAppear {
             guard previewBattery == nil else { return }
@@ -89,6 +121,42 @@ struct TerminalView: View {
             guard previewBattery == nil, !isLuminanceReduced else { return }
             refreshAll()
         }
+    }
+
+    private func bottomRow(date: Date, showCursor: Bool) -> some View {
+        if case .idle = timerState {
+            let cursor = showCursor ? "█" : ""
+            return PromptRow(command: Text(cursor).foregroundColor(Dracula.foreground))
+        }
+        let elapsed = formatElapsed(Int(timerState.elapsed(at: date)))
+        let label = isRunning ? "timer  " : "paused "
+        let labelColor = isRunning ? Dracula.cyan : Dracula.comment
+        return PromptRow(
+            prefix: Text(""),
+            command: Text(label).foregroundColor(labelColor)
+                + Text(elapsed).foregroundColor(Dracula.foreground)
+        )
+    }
+
+    private var isRunning: Bool {
+        if case .running = timerState { return true }
+        return false
+    }
+
+    private func toggleTimer(now: Date) {
+        switch timerState {
+        case .idle:
+            timerState = .running(since: now, accumulated: 0)
+        case .running(let since, let accumulated):
+            timerState = .paused(accumulated: accumulated + now.timeIntervalSince(since))
+        case .paused(let accumulated):
+            timerState = .running(since: now, accumulated: accumulated)
+        }
+    }
+
+    private func resetTimer() {
+        if case .idle = timerState { return }
+        timerState = .paused(accumulated: 0)
     }
 
     private func refreshAll() {
