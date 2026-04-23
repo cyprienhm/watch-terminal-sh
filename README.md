@@ -14,3 +14,16 @@ Screenshot:
 <div align="center">
     <img src="screenshots/watchface-screenshot.png" height="300">
 </div>
+
+
+Also includes a little timer:
+
+- tap once = reveal the timer and start/pause the timer
+- tap twice = reset the timer to 0
+- tap thrice = hide the timer, show the prompt with the blinking cursor again
+
+<div align="center">
+    <img src="screenshots/watchface-screenshot-timer.png" height=300>
+    <img src="screenshots/watchface-screenshot-timer-paused.png" height=300>
+</div>
+
