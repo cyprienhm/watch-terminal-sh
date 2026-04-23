@@ -60,7 +60,7 @@ struct TerminalView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
                 VStack(alignment: .leading, spacing: 4) {
-                    PromptRow(command: "now")
+                    PromptRow(command: Text("now").foregroundColor(Dracula.foreground))
                     InfoRow(label: "Time:", value: timeString(context.date))
                     InfoRow(label: "Date:", value: dateString(context.date))
                     RingsRow(rings: health.rings)
@@ -71,7 +71,7 @@ struct TerminalView: View {
                         value: "\(Int(100 * batteryLevel))% [\(batteryBar(level: batteryLevel))]",
                         valueColor: Dracula.pink
                     )
-                    PromptRow(command: showCursor ? "█" : nil)
+                    PromptRow(command: Text(showCursor ? "█" : "").foregroundColor(Dracula.foreground))
                 }
                 .font(.system(size: 14, design: .monospaced))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -118,14 +118,23 @@ struct TerminalView: View {
 }
 
 private struct PromptRow: View {
-    let command: String?
+    let prefix: Text
+    let command: Text
+
+    init(prefix: Text = Self.defaultPrefix, command: Text) {
+        self.prefix = prefix
+        self.command = command
+    }
+
+    static var defaultPrefix: Text {
+        Text(TerminalConstants.shellPrefix).foregroundColor(Dracula.green)
+            + Text("~").foregroundColor(Dracula.cyan)
+            + Text("$ ").foregroundColor(Dracula.foreground)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
-            Text(TerminalConstants.shellPrefix).foregroundColor(Dracula.green)
-                + Text("~").foregroundColor(Dracula.cyan)
-                + Text("$ ").foregroundColor(Dracula.foreground)
-                + Text(command ?? "").foregroundColor(Dracula.foreground)
+            prefix + command
         }
     }
 }
